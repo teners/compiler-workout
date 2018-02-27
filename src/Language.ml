@@ -44,7 +44,31 @@ module Expr =
        Takes a state and an expression, and returns the value of the expression in 
        the given state.
     *)
-    let eval _ = failwith "Not implemented yet"
+    let eval_binop op l r =
+        let bool_of_int value = if value = 0 then false else true in
+        let int_of_bool value = if value = true then 1 else 0 in
+        match op with
+        | "+" -> l + r
+        | "-" -> l - r
+        | "*" -> l * r
+        | "/" -> l / r
+        | "%" -> l mod r
+        | "==" -> int_of_bool(l == r)
+        | "!=" -> int_of_bool(l != r)
+        | "<"  -> int_of_bool(l < r)
+        | "<=" -> int_of_bool(l <= r)
+        | ">"  -> int_of_bool(l > r)
+        | ">=" -> int_of_bool(l >= r)
+        | "&&" -> int_of_bool(bool_of_int l && bool_of_int r)
+        | "!!" -> int_of_bool(bool_of_int l || bool_of_int r)
+        | _ -> failwith (Printf.sprintf "Unsupported operation: '%s'" op)
+
+    let rec eval s expr =
+        let eval' = eval s in
+        match expr with
+        | Const value -> value
+        | Var var -> s var
+        | Binop(op, l, r) -> eval_binop op (eval' l) (eval' r)
 
     (* Expression parser. You can use the following terminals:
 
