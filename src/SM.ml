@@ -67,4 +67,22 @@ let run p i = let (_, (_, _, o)) = eval ([], (Language.Expr.empty, i, [])) p in 
    Takes a program in the source language and returns an equivalent program for the
    stack machine
  *)
-let compile _ = failwith "Not yet implemented"
+let rec compile_expr expr =
+  match expr with
+  | Language.Expr.Const const ->
+    [CONST const]
+  | Language.Expr.Var var ->
+    [LD var]
+  | Language.Expr.Binop (op, l, r) ->
+    (compile_expr r) @ (compile_expr l) @ [BINOP op]
+
+let rec compile stmt =
+  match stmt with
+  | Language.Stmt.Read var ->
+    [READ; ST var]
+  | Language.Stmt.Write expr ->
+    (compile_expr expr) @ [WRITE]
+  | Language.Stmt.Assign (var, expr) ->
+    (compile_expr expr) @ [ST var]
+  | Language.Stmt.Seq (l, r) ->
+    (compile l) @ (compile r)
