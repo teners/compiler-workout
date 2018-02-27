@@ -67,4 +67,22 @@ let run i p = let (_, (_, _, o)) = eval ([], (Syntax.Expr.empty, i, [])) p in o
    stack machine
  *)
 
-let compile _ = failwith "Not yet implemented"
+let rec compile_expr expr =
+  match expr with
+  | Syntax.Expr.Const const ->
+    [CONST const]
+  | Syntax.Expr.Var var ->
+    [LD var]
+  | Syntax.Expr.Binop (op, l, r) ->
+    (compile_expr r) @ (compile_expr l) @ [BINOP op]
+
+let rec compile stmt =
+  match stmt with
+  | Syntax.Stmt.Read var ->
+    [READ; ST var]
+  | Syntax.Stmt.Write expr ->
+    (compile_expr expr) @ [WRITE]
+  | Syntax.Stmt.Assign (var, expr) ->
+    (compile_expr expr) @ [ST var]
+  | Syntax.Stmt.Seq (l, r) ->
+    (compile l) @ (compile r)
