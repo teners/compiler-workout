@@ -23,7 +23,33 @@ type config = int list * Syntax.Stmt.config
 
    Takes a configuration and a program, and returns a configuration as a result
  *)                         
-let eval _ = failwith "Not yet implemented"
+let eval config code =
+    let (stack, (state, istream, ostream)) = config in
+    let rec eval' (stack, (state, istream, ostream)) code =
+        match code with
+        | [] -> (stack, (state, istream, ostream))
+        | instruction::code' ->
+            eval' (match instruction with
+                | BINOP op ->
+                    let l::r::stack' = stack in
+                    ((Syntax.Expr.eval_binop op l r)::stack', (state, istream, ostream))
+                | CONST const ->
+                    (const::stack, (state, istream, ostream))
+                | READ ->
+                    let value::istream' = istream in
+                    (value::stack, (state, istream', ostream))
+                | WRITE ->
+                    let value::stack' = stack in
+                    (stack', (state, istream, ostream @ [value]))
+                | LD var ->
+                    let value = state var in
+                    (value::stack, (state, istream, ostream))
+                | ST var ->
+                    let value::stack' = stack in
+                    (stack', ((Syntax.Expr.update var value state), istream, ostream))
+                | _ -> failwith "Invalid instruction"
+            ) code' in
+    eval' (stack, (state, istream, ostream)) code
 
 (* Top-level evaluation
 
