@@ -89,7 +89,23 @@ module Stmt =
 
        Takes a configuration and a statement, and returns another configuration
     *)
-    let eval _ = failwith "Not implemented yet"
+    let rec eval config stmt =
+        let (state, istream, ostream) = config in
+        match stmt with
+        | Read var -> (
+            match istream with
+            | input::istream ->
+                let state = Expr.update var input state in
+                (state, istream, ostream)
+            | [] -> failwith "Empty input stream")
+        | Write expr ->
+            let output = Expr.eval state expr in
+            (state, istream, ostream @ [output])
+        | Assign (var, expr) ->
+            let res = Expr.eval state expr in
+            (Expr.update var res state, istream, ostream)
+        | Seq (l, r) ->
+            eval (eval config l) r
                                                          
   end
 
