@@ -70,6 +70,12 @@ module Expr =
         | Var var -> s var
         | Binop(op, l, r) -> eval_binop op (eval' l) (eval' r)
 
+    let parse_binops operators =
+        List.map (
+            fun operator -> ostap($(operator)),
+            (fun left right -> Binop (operator, left, right))
+        ) operators
+
     (* Expression parser. You can use the following terminals:
 
          IDENT   --- a non-empty identifier a-zA-Z[a-zA-Z0-9_]* as a string
@@ -77,7 +83,15 @@ module Expr =
    
     *)
     ostap (
-      parse: empty {failwith "Not implemented yet"}
+      root: var:IDENT {Var var} | var:DECIMAL {Const var} | -"(" parse -")";
+      parse:
+        !(Ostap.Util.expr (fun x -> x) [|
+            `Lefta,  parse_binops ["!!"];
+            `Lefta,  parse_binops ["&&"];
+            `Nona,   parse_binops [">="; ">"; "<="; "<"; "=="; "!="];
+            `Lefta,  parse_binops ["+"; "-"];
+            `Lefta,  parse_binops ["*"; "/"; "%"]
+        |] root)
     )
 
   end
@@ -102,10 +116,6 @@ module Stmt =
 
        Takes a configuration and a statement, and returns another configuration
     *)
-    (* Statement parser *)
-    ostap (
-      parse: empty {failwith "Not implemented yet"}
-    )
       
     let rec eval config stmt =
         let (state, istream, ostream) = config in
@@ -125,6 +135,16 @@ module Stmt =
         | Seq (l, r) ->
             eval (eval config l) r
                                                          
+    (* Statement parser *)
+    ostap (
+       parse:  seq | stmt;
+       stmt:
+           -"read" -"(" var: IDENT -")" {Read var}
+         | -"write" -"(" expr: !(Expr.parse) -")" {Write expr}
+         | var: IDENT -":=" expr: !(Expr.parse) { Assign (var, expr) };
+       seq: l:stmt -";" r:parse { Seq (l, r) }
+     )
+
   end
 
 (* The top-level definitions *)
